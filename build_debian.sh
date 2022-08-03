@@ -350,7 +350,8 @@ sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y in
     fdisk                   \
     gpg                     \
     jq                      \
-    auditd
+    auditd                  \
+    shim-unsigned
 
 # Have systemd create the auditd log directory
 sudo mkdir -p ${FILESYSTEM_ROOT}/etc/systemd/system/auditd.service.d
@@ -648,4 +649,17 @@ pushd $FILESYSTEM_ROOT && sudo tar czf $OLDPWD/$FILESYSTEM_DOCKERFS -C ${DOCKERF
 
 ## Compress together with /boot, /var/lib/docker and $PLATFORM_DIR as an installer payload zip file
 pushd $FILESYSTEM_ROOT && sudo tar czf platform.tar.gz -C $PLATFORM_DIR . && sudo zip -n .gz $OLDPWD/$ONIE_INSTALLER_PAYLOAD -r boot/ platform.tar.gz; popd
+
+# TODO:
+# Secure boot signing
+echo "==================================================="
+echo "===========secure boot modifications========================================"
+echo "ls -la"
+ls -la
+modules_list=$(find ./ -name "*.ko")
+echo "modules_list"
+echo "$modules_list"
+echo "===========end of signign KO========================================"
+
+
 sudo zip -g -n .squashfs:.gz $ONIE_INSTALLER_PAYLOAD $FILESYSTEM_SQUASHFS $FILESYSTEM_DOCKERFS

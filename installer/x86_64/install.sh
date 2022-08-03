@@ -466,7 +466,94 @@ demo_install_uefi_grub()
     }
 
 }
+# 469 change to shim
+demo_install_uefi_shim()
+{
+    local demo_mnt="$1"
+    local blk_dev="$2"
 
+    # make sure /boot/efi is mounted
+    if ! mount | grep -q "/boot/efi"; then
+        mount /boot/efi
+    fi
+
+    # Look for the EFI system partition UUID on the same block device as
+    # the ONIE-BOOT partition.
+    local uefi_part=0
+    for p in $(seq 8) ; do
+        if sgdisk -i $p $blk_dev | grep -q C12A7328-F81F-11D2-BA4B-00A0C93EC93B ; then
+            uefi_part=$p
+            break
+        fi
+    done
+
+    [ $uefi_part -eq 0 ] && {
+        echo "ERROR: Unable to determine UEFI system partition"
+        exit 1
+    }
+
+    # need to be remove - and take a signed grub
+    grub_install_log=$(mktemp)
+    grub-install \
+        --no-nvram \
+        --bootloader-id="$demo_volume_label" \
+        --efi-directory="/boot/efi" \
+        --boot-directory="$demo_mnt" \
+        --recheck \
+        "$blk_dev" > /$grub_install_log 2>&1 || {
+        echo "ERROR: grub-install failed on: $blk_dev"
+        cat $grub_install_log && rm -f $grub_install_log
+        exit 1
+    }
+    # rm -f $grub_install_log
+
+    # Configure EFI NVRAM Boot variables.  --create also sets the
+    # new boot number as active.
+    echo "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSBBBBBBBBBBB"
+    echo "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSBBBBBBBBBBB"
+    echo "demo_volume_label: $demo_volume_label"
+    echo "demo_mnt: $demo_mnt"
+    echo "blk_dev: $blk_dev"
+    echo "grub_install_log: $grub_install_log"
+    echo "uefi_part: $uefi_part"
+
+    echo "cp unsigned shim from /usr/lib/shim/shimx64.efi to /boot/efi/EFI/$demo_volume_label"
+    ls .
+    pwd
+    # wget http://ftp.us.debian.org/debian/pool/main/s/shim/shim-unsigned_15.4-7_amd64.deb
+    ls /tmp/Andriy
+    whoami
+    # echo "dpkg-deb ..."
+    # dpkg-deb -x shim-unsigned_15.4-7_amd64.deb SHIM_TMP
+    # echo "after dpkg-deb"
+    ls .
+    pwd
+
+    ls -l /boot/efi/EFI/$demo_volume_label
+
+    # cp /usr/lib/shim/shimx64.efi /EFI/$demo_volume_label
+    # cp /SHIM_TMP/usr/lib/shim/shimx64.efi  /boot/efi/EFI/$demo_volume_label
+    echo "[DEBUG][WA]cp signed shim and grub from /tmp/Andriy..."
+    cp /tmp/Andriy/shim-signed.efi /boot/efi/EFI/$demo_volume_label/shimx64.efi
+    cp /tmp/Andriy/grub-signed.efi /boot/efi/EFI/$demo_volume_label/grubx64.efi
+    # cp /tmp/Andriy/vmlinuz-5.10.0-12-2-amd64-signed /$image_dir/boot/vmlinuz-5.10.0-12-2-amd64
+    # ls -l /$image_dir/boot/
+
+    ls  -l /boot/efi/EFI/$demo_volume_label
+
+
+    efibootmgr --quiet --create \
+        --label "$demo_volume_label" \
+        --disk $blk_dev --part $uefi_part \
+        --loader "/EFI/$demo_volume_label/shimx64.efi" || {
+        echo "ERROR: efibootmgr failed to create new boot variable on: $blk_dev"
+        exit 1
+
+
+    echo "ending ... SB changes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+    }
+
+}
 image_dir="image-$image_version"
 
 if [ "$install_env" = "onie" ]; then
@@ -521,7 +608,7 @@ else
 fi
 
 echo "Installing SONiC to $demo_mnt/$image_dir"
-
+echo [DEBUG] demo_mnt/image_dir: $demo_mnt/$image_dir
 # Create target directory or clean it up if exists
 if [ -d $demo_mnt/$image_dir ]; then
     echo "Directory $demo_mnt/$image_dir/ already exists. Cleaning up..."
@@ -532,7 +619,7 @@ else
         exit 1
     }
 fi
-
+echo [DEBUG] demo_mnt/image_dir: $demo_mnt/$image_dir
 # Decompress the file for the file system directly to the partition
 if [ x"$docker_inram" = x"on" ]; then
     # when disk is small, keep dockerfs.tar.gz in disk, expand it into ramfs during initrd
@@ -568,8 +655,9 @@ if [ "$install_env" = "onie" ]; then
     ${onie_bin} onie-support /tmp
     mv $onie_initrd_tmp/tmp/onie-support*.tar.bz2 $demo_mnt/$image_dir/
 
+#         demo_install_uefi_grub "$demo_mnt" "$blk_dev"
     if [ "$firmware" = "uefi" ] ; then
-        demo_install_uefi_grub "$demo_mnt" "$blk_dev"
+        demo_install_uefi_shim "$demo_mnt" "$blk_dev"
     else
         demo_install_grub "$demo_mnt" "$blk_dev"
     fi
@@ -604,7 +692,9 @@ else
 fi
 
 DEFAULT_GRUB_SERIAL_COMMAND="serial --port=${CONSOLE_PORT} --speed=${CONSOLE_SPEED} --word=8 --parity=no --stop=1"
-DEFAULT_GRUB_CMDLINE_LINUX="console=tty0 console=ttyS${CONSOLE_DEV},${CONSOLE_SPEED}n8 quiet $CSTATES"
+# DEFAULT_GRUB_CMDLINE_LINUX="console=tty0 console=ttyS${CONSOLE_DEV},${CONSOLE_SPEED}n8 quiet $CSTATES"
+# TODO set the quiet back instead debug
+DEFAULT_GRUB_CMDLINE_LINUX="console=tty0 console=ttyS${CONSOLE_DEV},${CONSOLE_SPEED}n8 loglevel=7 systemd.log_level=debug $CSTATES"
 GRUB_SERIAL_COMMAND=${GRUB_SERIAL_COMMAND:-"$DEFAULT_GRUB_SERIAL_COMMAND"}
 GRUB_CMDLINE_LINUX=${GRUB_CMDLINE_LINUX:-"$DEFAULT_GRUB_CMDLINE_LINUX"}
 export GRUB_SERIAL_COMMAND
@@ -674,6 +764,26 @@ extra_cmdline_linux=%%EXTRA_CMDLINE_LINUX%%
 echo "EXTRA_CMDLINE_LINUX=$extra_cmdline_linux"
 GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX $extra_cmdline_linux"
 
+# cat <<EOF >> $grub_cfg
+# menuentry '$demo_grub_entry' {
+#         search --no-floppy --label --set=root $demo_volume_label
+#         echo    'Loading $demo_volume_label $demo_type kernel ...'
+#         insmod gzio
+#         if [ x$grub_platform = xxen ]; then insmod xzio; insmod lzopio; fi
+#         insmod part_msdos
+#         insmod ext2
+#         linux   /$image_dir/boot/vmlinuz-5.10.0-12-2-amd64 root=$grub_cfg_root rw $GRUB_CMDLINE_LINUX  \
+#                 net.ifnames=0 biosdevname=0 \
+#                 loop=$image_dir/$FILESYSTEM_SQUASHFS loopfstype=squashfs                       \
+#                 systemd.unified_cgroup_hierarchy=0 \
+#                 apparmor=1 security=apparmor varlog_size=$VAR_LOG_SIZE usbcore.autosuspend=-1 $ONIE_PLATFORM_EXTRA_CMDLINE_LINUX
+#         echo    'Loading $demo_volume_label $demo_type initial ramdisk ...'
+#         initrd  /$image_dir/boot/initrd.img-5.10.0-12-2-amd64
+# }
+echo "[DEBUG] grub_cfg:$grub_cfg"
+echo "[DEBUG] image_dir:$image_dir"
+
+ls .
 cat <<EOF >> $grub_cfg
 menuentry '$demo_grub_entry' {
         search --no-floppy --label --set=root $demo_volume_label
@@ -682,22 +792,25 @@ menuentry '$demo_grub_entry' {
         if [ x$grub_platform = xxen ]; then insmod xzio; insmod lzopio; fi
         insmod part_msdos
         insmod ext2
-        linux   /$image_dir/boot/vmlinuz-5.10.0-12-2-amd64 root=$grub_cfg_root rw $GRUB_CMDLINE_LINUX  \
+        linuxefi   /$image_dir/boot/vmlinuz-5.10.0-12-2-amd64 root=$grub_cfg_root rw $GRUB_CMDLINE_LINUX  \
                 net.ifnames=0 biosdevname=0 \
                 loop=$image_dir/$FILESYSTEM_SQUASHFS loopfstype=squashfs                       \
                 systemd.unified_cgroup_hierarchy=0 \
                 apparmor=1 security=apparmor varlog_size=$VAR_LOG_SIZE usbcore.autosuspend=-1 $ONIE_PLATFORM_EXTRA_CMDLINE_LINUX
         echo    'Loading $demo_volume_label $demo_type initial ramdisk ...'
-        initrd  /$image_dir/boot/initrd.img-5.10.0-12-2-amd64
+        initrdefi  /$image_dir/boot/initrd.img-5.10.0-12-2-amd64
 }
+
 EOF
 
 if [ "$install_env" = "onie" ]; then
+    echo "[DEBUG]install_env = onie"
     # Add menu entries for ONIE -- use the grub fragment provided by the
     # ONIE distribution.
     $onie_root_dir/grub.d/50_onie_grub >> $grub_cfg
     mkdir -p $onie_initrd_tmp/$demo_mnt/grub
 else
+    echo "[DEBUG]else than (install_env = onie)"
 cat <<EOF >> $grub_cfg
 $old_sonic_menuentry
 $onie_menuentry
@@ -705,11 +818,28 @@ EOF
 fi
 
 if [ "$install_env" = "build" ]; then
+    echo "[DEBUG]install_env = build"
+    echo "[DEBUG]grub_cfg: $grub_cfg"
+    echo "[DEBUG]demo_mnt/grub.cfg: $demo_mnt/grub.cfg"
+    ls $demo_mnt
     cp $grub_cfg $demo_mnt/grub.cfg
-    umount $demo_mnt
+    # umount $demo_mnt
 else
+    echo "[DEBUG]else than: install_env = build"
+    echo "[DEBUG]grub_cfg: $grub_cfg"
+    echo "onie_initrd_tmp/demo_mnt/grub/grub.cfg: $onie_initrd_tmp/$demo_mnt/grub/grub.cfg"
+    ls $onie_initrd_tmp/$demo_mnt
     cp $grub_cfg $onie_initrd_tmp/$demo_mnt/grub/grub.cfg
 fi
+# save grub_cfg in the same place whewre is grubx64.efi
+echo "cp grub_cfg near to grubx64"
+ls /boot/efi/EFI/$demo_volume_label/
+cp $grub_cfg /boot/efi/EFI/$demo_volume_label/grub.cfg
+ls /boot/efi/EFI/$demo_volume_label/
+
+echo "cp vmlinuz  to grubx64 demo_mnt/image_dir=$demo_mnt/$image_dir"
+cp /tmp/Andriy/vmlinuz-5.10.0-12-2-amd64-signed $demo_mnt/$image_dir/boot/vmlinuz-5.10.0-12-2-amd64
+ls -l $demo_mnt/$image_dir/boot/
 
 cd /
 
