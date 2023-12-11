@@ -29,7 +29,8 @@ $(DOCKER_CONFIG_ENGINE_BULLSEYE)_DBG_DEPENDS = $($(DOCKER_BASE_BULLSEYE)_DBG_DEP
                                              $(LIBYANG_PY3_DBG) \
                                              $(PYTHON3_SWSSCOMMON_DBG) \
                                              $(SONIC_DB_CLI_DBG) \
-                                             $(SONIC_EVENTD_DBG)
+                                             $(SONIC_EVENTD_DBG) \
+					     $(LIBHIREDIS_DBG)
 $(DOCKER_CONFIG_ENGINE_BULLSEYE)_DBG_IMAGE_PACKAGES = $($(DOCKER_BASE_BULLSEYE)_DBG_IMAGE_PACKAGES)
 
 SONIC_DOCKER_IMAGES += $(DOCKER_CONFIG_ENGINE_BULLSEYE)
