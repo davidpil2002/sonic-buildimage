@@ -246,6 +246,9 @@ SECURE_UPGRADE_SIGNING_CERT ?=
 SECURE_UPGRADE_MODE = "no_sign"
 SECURE_UPGRADE_PROD_SIGNING_TOOL ?=
 SECURE_UPGRADE_PROD_TOOL_ARGS ?=
+
+# REDIS_ACL - if set to y redis access control list is enabled
+REDIS_ACL ?= n
 # PACKAGE_URL_PREFIX - the package url prefix
 PACKAGE_URL_PREFIX ?= https://packages.trafficmanager.net/packages
 

@@ -240,6 +240,8 @@ fi
 
 program_console_speed
 
+# If REDIS_ACL is enabled, generate password for Redis DB
+if [ -d "$REDIS_SHADOW_PATH" ]; then
 # Generate password for Redis DB
 echo "Redis PW generation"
 set +x
@@ -268,8 +270,8 @@ REDIS_CERTS_TLS=$REDIS_CERTS/tls
 
 # Copy CA cert to host share location for Redis client usage
 cp  $REDIS_CERTS_TLS/ca.crt $REDIS_SHADOW_PATH/certs_redis
-
 set -x
+fi
 
 if [ -f $FIRST_BOOT_FILE ]; then
 

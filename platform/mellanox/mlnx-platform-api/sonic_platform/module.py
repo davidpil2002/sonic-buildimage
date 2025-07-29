@@ -17,6 +17,7 @@
 #
 
 import redis
+import os
 import threading
 from sonic_platform_base.module_base import ModuleBase
 from sonic_platform_base.chassis_base import ChassisBase
@@ -41,10 +42,13 @@ class Module(ModuleBase):
     STATE_DB = 6
     STATE_MODULAR_CHASSIS_SLOT_TABLE = 'MODULAR_CHASSIS_SLOT|{}'
     FIELD_SEQ_NO = 'seq_no'
-    USERNAME = 'admin'
-    PASSWORD = utils.read_str_from_file('/etc/shadow_redis_dir/shadow_redis_admin')
-    REDIS_SHADOW_TLS_CA="/etc/shadow_redis_dir/certs_redis/ca.crt"
-    redis_client = redis.Redis(port=6379, db=STATE_DB, username=USERNAME, password=PASSWORD, ssl=True, ssl_cert_reqs=None, ssl_ca_certs=REDIS_SHADOW_TLS_CA)
+    if os.path.exists('/etc/shadow_redis_dir/shadow_redis_admin'):
+        USERNAME = 'admin'
+        PASSWORD = utils.read_str_from_file('/etc/shadow_redis_dir/shadow_redis_admin')
+        REDIS_SHADOW_TLS_CA = "/etc/shadow_redis_dir/certs_redis/ca.crt"
+        redis_client = redis.Redis(port=6379, db=STATE_DB, username=USERNAME, password=PASSWORD, ssl=True, ssl_cert_reqs=None, ssl_ca_certs=REDIS_SHADOW_TLS_CA)
+    else:
+        redis_client = redis.Redis(db = STATE_DB)
 
 
     def __init__(self, slot_id):
