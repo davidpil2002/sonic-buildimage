@@ -131,12 +131,15 @@ class Module(ModuleBase):
         # pull in the redis package (saves ~20MB RSS in psud).
         if cls.redis_client is None:
             import redis
-            username = 'admin'
-            password = utils.read_str_from_file('/etc/shadow_redis_dir/shadow_redis_admin')
-            ca = "/etc/shadow_redis_dir/certs_redis/ca.crt"
-            cls.redis_client = redis.Redis(port=6379, db=cls.STATE_DB, username=username,
-                                           password=password, ssl=True, ssl_cert_reqs=None,
-                                           ssl_ca_certs=ca)
+            if os.path.exists('/etc/shadow_redis_dir/shadow_redis_admin'):
+                username = 'admin'
+                password = utils.read_str_from_file('/etc/shadow_redis_dir/shadow_redis_admin')
+                ca = "/etc/shadow_redis_dir/certs_redis/ca.crt"
+                cls.redis_client = redis.Redis(port=6379, db=cls.STATE_DB, username=username,
+                                               password=password, ssl=True, ssl_cert_reqs=None,
+                                               ssl_ca_certs=ca)
+            else:
+                cls.redis_client = redis.Redis(db=cls.STATE_DB)
         return cls.redis_client
 
     def _get_seq_no(self):

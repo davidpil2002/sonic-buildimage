@@ -180,13 +180,16 @@ if [[ -d $REDIS_BMP_DIR ]]; then
 fi
 
 # Redis PW update in users.acl
-acl_template=$(< /etc/redis/users.acl.template)
+if [[ "$REDIS_ACL" == "y" ]]; then
 
-USER_COUNTER_PASSWORD=$(cat /etc/shadow_redis_dir/shadow_redis_admin)
-acl_new_admin_user="${acl_template//\$\{USER_COUNTER_PASSWORD\}/$USER_COUNTER_PASSWORD}"
+    acl_template=$(< /etc/redis/users.acl.template)
 
-MONITOR_PASSWORD=$(cat /etc/shadow_redis_dir/shadow_redis_monitor)
-acl_new_admin_monitor_users="${acl_new_admin_user//\$\{MONITOR_PASSWORD\}/$MONITOR_PASSWORD}"
-echo "$acl_new_admin_monitor_users" > /etc/redis/users.acl
+    USER_COUNTER_PASSWORD=$(cat /etc/shadow_redis_dir/shadow_redis_admin)
+    acl_new_admin_user="${acl_template//\$\{USER_COUNTER_PASSWORD\}/$USER_COUNTER_PASSWORD}"
+
+    MONITOR_PASSWORD=$(cat /etc/shadow_redis_dir/shadow_redis_monitor)
+    acl_new_admin_monitor_users="${acl_new_admin_user//\$\{MONITOR_PASSWORD\}/$MONITOR_PASSWORD}"
+    echo "$acl_new_admin_monitor_users" > /etc/redis/users.acl
+fi
 
 exec /usr/local/bin/supervisord

@@ -296,10 +296,12 @@ fi
 # Copy bmc.json early enough so that services can use it
 copy_bmc_json
 
+# If REDIS_ACL is enabled, generate password for Redis DB
+REDIS_SHADOW_PATH=/etc/shadow_redis_dir
+if [ -d "$REDIS_SHADOW_PATH" ]; then
 # Generate password for Redis DB
 echo "Redis PW generation"
 set +x
-REDIS_SHADOW_PATH=/etc/shadow_redis_dir
 openssl_random_cmd=$(openssl rand -base64 32)
 ADMIN_PASSWORD=''
 ADMIN_PASSWORD=$(echo "$openssl_random_cmd" | tr -d '\n')
@@ -324,8 +326,8 @@ REDIS_CERTS_TLS=$REDIS_CERTS/tls
 
 # Copy CA cert to host share location for Redis client usage
 cp  $REDIS_CERTS_TLS/ca.crt $REDIS_SHADOW_PATH/certs_redis
-
 set -x
+fi
 
 if [ -f $FIRST_BOOT_FILE ]; then
 

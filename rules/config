@@ -316,6 +316,9 @@ BUILD_PUBLIC_URL ?= https://packages.trafficmanager.net/public
 # BUILD_PACKAGES_URL - Default packages mirror url
 BUILD_PACKAGES_URL ?= https://packages.trafficmanager.net/packages
 
+# REDIS_ACL - if set to y redis access control list is enabled
+REDIS_ACL ?= n
+
 # TRUSTED_GPG_URLS - the trusted gpgs, separated by comma
 TRUSTED_GPG_URLS = https://packages.microsoft.com/keys/microsoft.asc
 
