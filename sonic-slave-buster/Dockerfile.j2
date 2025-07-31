@@ -378,9 +378,6 @@ RUN apt-get update && apt-get install -y eatmydata && eatmydata apt-get install 
 # For WPA supplication
         qtbase5-dev          \
         aspell-en            \
-{%- if CROSS_BUILD_ENVIRON != "y" %}
-        libhiredis-dev       \
-{%- endif %}
         swig3.0              \
         libpython2.7-dev     \
         libssl-dev           \
@@ -425,6 +422,7 @@ RUN apt-get update && apt-get install -y eatmydata && eatmydata apt-get install 
         pkgconf \
 # For sonic-swss-common build
         libhiredis-dev \
+        pkg-config \
 # For audisp-tacplus
         libauparse-dev \
         auditd
