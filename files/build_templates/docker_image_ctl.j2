@@ -747,6 +747,9 @@ start() {
 {%- endif %}
     docker create {{docker_image_run_opt}} \
         -v /host/warmboot$DEV:/var/warmboot \
+{%- if REDIS_ACL == "y" %}
+        -v /etc/shadow_redis_dir:/etc/shadow_redis_dir:ro \
+{%- endif %}
 {%- if docker_container_name != "dhcp_server" %}
         --net=$NET \
 {%- endif %}
@@ -815,6 +818,9 @@ start() {
 {%- endif %}
 {%- if docker_container_name == "database" %}
         $DB_OPT \
+{%- if REDIS_ACL == "y" %}
+        -v /etc/ssl/certs_redis:/etc/ssl/certs_redis:ro \
+{%- endif %}
 {%- else %}
         -v /var/run/redis-chassis:/var/run/redis-chassis:ro \
         -v /usr/share/sonic/device/$PLATFORM/$HWSKU/$DEV:/usr/share/sonic/hwsku:$HWSKU_MOUNT_MODE \
